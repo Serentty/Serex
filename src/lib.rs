@@ -1,5 +1,4 @@
 #![feature(asm)]
-#![feature(global_asm)]
 #![allow(dead_code)]
 #![no_std]
 #![no_main]

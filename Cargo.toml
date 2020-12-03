@@ -7,7 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bootloader = "0.9.8"
 volatile = "0.2.6"
 spin = "0.5.2"
 
@@ -15,6 +14,9 @@ spin = "0.5.2"
 [dependencies.lazy_static]
 version = "1.0"
 features = ["spin_no_std"]
+
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+bootloader = { version = "0.9.11", features = ["vga_320x200"] }
 
 [profile.dev]
 opt-level = "z"

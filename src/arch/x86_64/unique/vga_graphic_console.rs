@@ -11,16 +11,26 @@ pub const BUFFER_WIDTH: usize = 1024;
 pub const BUFFER_HEIGHT: usize = 768;
 pub const BUFFER_BPP: u8 = 32;
 const UNIFONT_WIDTH: usize = 4096;
-const UNIFONT_HEIGHT: usize = 4096;
+const UNIFONT_HEIGHT: usize = 8192;
 const UNIFONT_GLYPH_WIDTH: usize = 16;
 const UNIFONT_GLYPH_HEIGHT: usize = 16;
 const UNIFONT_GLYPHS_PER_ROW: usize = UNIFONT_WIDTH / UNIFONT_GLYPH_WIDTH;
 const BUFFER_ROWS: usize = BUFFER_HEIGHT / UNIFONT_GLYPH_HEIGHT;
 const BUFFER_COLUMNS: usize = BUFFER_WIDTH / UNIFONT_GLYPH_WIDTH;
 
-static UNIFONT_BMP: &[u8; 16777216] = include_bytes!("../../../../Resources/Unifont BMP.data");
+static UNIFONT: &[u8; (UNIFONT_WIDTH * UNIFONT_HEIGHT) / 8] = include_bytes!("../../../../Resources/Unifont.data");
 
 type Colour = u32;
+
+#[inline(always)]
+fn test_bit(byte: u8, bit: u8) -> bool {
+    let mask = 0b1000_0000 >> bit;
+    byte & mask != 0
+}
+
+fn is_halfwidth(index: usize) -> bool {
+    false
+}
 
 #[repr(transparent)]
 struct Buffer {
@@ -29,9 +39,10 @@ struct Buffer {
 
 impl Buffer {
     fn write_glyph_at(&mut self, mut index: usize, foreground_colour: Colour, background_colour: Colour, x: usize, y: usize) {
-        if index > 0xFFFF {
-            index = 0xFFFD; // For now, replace characters above hte BMP with
-                            // a replacment charcter.
+        if index > 0x1FFFF {
+            index = 0xFFFD; // Characters above the SMP are not covered
+                            // by the font, so replace them.
+                            
         }
         let unifont_row = index / UNIFONT_GLYPHS_PER_ROW;
         let unifont_column = index % UNIFONT_GLYPHS_PER_ROW;
@@ -41,8 +52,9 @@ impl Buffer {
             let buffer_glyph_line = y * UNIFONT_GLYPH_HEIGHT + row;
             let buffer_glyph_column_start = x * UNIFONT_GLYPH_WIDTH;
             for column in 0..UNIFONT_GLYPH_WIDTH {
-                self.entries[buffer_glyph_line][buffer_glyph_column_start + column].write(
-                    if UNIFONT_BMP[(glyph_start_y + row) * UNIFONT_WIDTH + (glyph_start_x + column)] != 0 {
+                let position = (glyph_start_y + row) * UNIFONT_WIDTH + (glyph_start_x + (column / if is_halfwidth(index) { 2 } else { 1 }));
+                self.entries[buffer_glyph_line][buffer_glyph_column_start + column].write(                    
+                    if test_bit(UNIFONT[position / 8], position as u8 % 8) {
                         foreground_colour
                     } else {
                         background_colour
@@ -131,7 +143,7 @@ static mut BACK_BUFFER: Buffer = unsafe { transmute([[0 as Colour; BUFFER_WIDTH]
 lazy_static! {
     pub static ref VGA_GRAPHIC_CONSOLE: Mutex<VgaGraphicConsole> = Mutex::new(VgaGraphicConsole {
         active_column: 0,
-        foreground_colour: 0x00FF9900,
+        foreground_colour: 0x0000FFFF,
         background_colour: 0x00000000,
         back_buffer: unsafe { &mut BACK_BUFFER },
         front_buffer: unsafe { &mut *(BUFFER_BASE as *mut Buffer ) }

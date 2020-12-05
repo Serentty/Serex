@@ -18,7 +18,14 @@ const UNIFONT_GLYPHS_PER_ROW: usize = UNIFONT_WIDTH / UNIFONT_GLYPH_WIDTH;
 const BUFFER_ROWS: usize = BUFFER_HEIGHT / UNIFONT_GLYPH_HEIGHT;
 const BUFFER_COLUMNS: usize = BUFFER_WIDTH / UNIFONT_GLYPH_WIDTH;
 
-static UNIFONT: &[u8; (UNIFONT_WIDTH * UNIFONT_HEIGHT) / 8] = include_bytes!("../../../../Resources/Unifont.data");
+const UNIFONT: &[u8; (UNIFONT_WIDTH * UNIFONT_HEIGHT) / 8] = include_bytes!("../../../../Resources/Unifont.data");
+const HALFWIDTH_RANGES: [(u32, u32); 4] = [
+    // TODO: Autogenerate an exhaustive list of halfwidth characters.
+    (0x0020, 0x03FE),
+    (0x2500, 0x257F), // Box Drawing
+    (0x2580, 0x259F), // Block Elements
+    (0x1FB00, 0x1FBFF) // Symbols for Legacy Computing
+];
 
 type Colour = u32;
 
@@ -29,6 +36,12 @@ fn test_bit(byte: u8, bit: u8) -> bool {
 }
 
 fn is_halfwidth(index: usize) -> bool {
+    let index = index as u32;
+    for range in HALFWIDTH_RANGES.iter() {
+        if index >= range.0 && index <= range.1 {
+            return true;
+        }
+    }
     false
 }
 
@@ -143,7 +156,7 @@ static mut BACK_BUFFER: Buffer = unsafe { transmute([[0 as Colour; BUFFER_WIDTH]
 lazy_static! {
     pub static ref VGA_GRAPHIC_CONSOLE: Mutex<VgaGraphicConsole> = Mutex::new(VgaGraphicConsole {
         active_column: 0,
-        foreground_colour: 0x0000FFFF,
+        foreground_colour: 0x00FF9900,
         background_colour: 0x00000000,
         back_buffer: unsafe { &mut BACK_BUFFER },
         front_buffer: unsafe { &mut *(BUFFER_BASE as *mut Buffer ) }

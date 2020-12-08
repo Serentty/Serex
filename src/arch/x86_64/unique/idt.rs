@@ -1,11 +1,15 @@
 use lazy_static::lazy_static;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
 use crate::println;
+use pic::PicInterrupt;
+
+pub mod pic;
 
 lazy_static! {
     static ref INTERRUPT_DESCRIPTOR_TABLE: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
         unsafe {
+            // CPU exceptions
             idt.divide_error.set_handler_fn(idt_divide_by_zero);
             idt.debug.set_handler_fn(idt_debug);
             idt.non_maskable_interrupt.set_handler_fn(idt_non_maskable_interrupt);
@@ -25,6 +29,9 @@ lazy_static! {
             idt.machine_check.set_handler_fn(idt_machine_check);
             idt.simd_floating_point.set_handler_fn(idt_simd_floating_point);
             idt.virtualization.set_handler_fn(idt_virtualization);
+            // PIC interrupts
+            idt[PicInterrupt::Timer as usize].set_handler_fn(pic::idt_timer);
+            idt[PicInterrupt::Keyboard as usize].set_handler_fn(pic::idt_keyboard);
         }
         idt
     };

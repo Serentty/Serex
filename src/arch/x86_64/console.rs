@@ -1,3 +1,4 @@
+use x86_64::instructions::interrupts::without_interrupts;
 use spin::Mutex;
 use lazy_static::lazy_static;
 use crate::arch::x86_64::unique::{vga_console, vga_graphic_console};
@@ -31,6 +32,13 @@ lazy_static! {
 }
 
 #[inline(always)]
-pub fn get_console() -> &'static Mutex<impl Console> {
+fn get_console() -> &'static Mutex<impl Console> {
     &CONSOLE_DISPATCHER
+}
+
+pub fn write_format(args: core::fmt::Arguments) {
+    use core::fmt::Write;
+    without_interrupts(|| { 
+        get_console().lock().write_fmt(args)
+    });
 }

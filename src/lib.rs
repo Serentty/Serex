@@ -8,12 +8,13 @@ mod arch;
 mod console;
 
 use core::panic::PanicInfo;
+use arch::native;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("\n🯁🯂🯃 A kernel panic has occurred.");
     print!("{}", info);
-    loop {}
+    native::interrupts::halt_loop();
 }
 
 static MESSAGE: &str =
@@ -24,10 +25,9 @@ r#"╔═══════════════════╗
 fn kmain(boot_information: multiboot2::BootInformation) -> ! {
     println!("{}", MESSAGE);
     println!("Initializing memory...");
-    arch::native::memory::initialize();
-    x86_64::instructions::interrupts::int3();
-    unsafe {
-        *(0x1deadbeef as *mut u8) = 42; 
-    }
-    loop{}
+    native::memory::initialize();
+    println!("Initializing I/O...");
+    native::io::initialize();
+    println!("Now chilling, waiting for interrupts.");
+    native::interrupts::halt_loop();
 }

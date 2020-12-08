@@ -12,6 +12,5 @@ macro_rules! println {
 }
 
 pub fn write_format(args: core::fmt::Arguments) {
-    use core::fmt::Write;
-    crate::arch::native::console::get_console().lock().write_fmt(args).ok();    
+    crate::arch::native::console::write_format(args);   
 }

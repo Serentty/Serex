@@ -100,6 +100,7 @@ impl VgaGraphicConsole {
     fn write_char(&mut self, character: char) {
         match character {
             '\n' => self.new_line(),
+            '\u{08}' => self.backspace(),
             ch => self.write_glyph(ch)
         }
     }
@@ -120,6 +121,14 @@ impl VgaGraphicConsole {
         }
         self.clear_character_row(BUFFER_ROWS - 1);
         self.active_column = 0;
+    }
+
+    fn backspace(&mut self) {
+        if self.active_column > 0 {
+            let new_column = self.active_column - 1;
+            self.back_buffer.write_glyph_at('\u{20}' as usize, self.foreground_colour, self.background_colour, new_column, BUFFER_ROWS - 1);
+            self.active_column = new_column;
+        }
     }
 
     fn clear_character_row(&mut self, row: usize) {

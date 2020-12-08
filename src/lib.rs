@@ -1,4 +1,5 @@
 #![feature(asm)]
+#![feature(abi_x86_interrupt)]
 #![allow(dead_code)]
 #![no_std]
 #![no_main]
@@ -10,7 +11,7 @@ use core::panic::PanicInfo;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    println!("\nA kernel panic has occurred.");
+    println!("\n🯁🯂🯃 A kernel panic has occurred.");
     print!("{}", info);
     loop {}
 }
@@ -20,24 +21,13 @@ r#"╔═══════════════════╗
 ║ Welcome to SEREX! ║
 ╚═══════════════════╝"#;
 
-
 fn kmain(boot_information: multiboot2::BootInformation) -> ! {
-    print!(r#"
-    U+1FB0x 	🬀 	🬁 	🬂 	🬃 	🬄 	🬅 	🬆 	🬇 	🬈 	🬉 	🬊 	🬋 	🬌 	🬍 	🬎 	🬏
-    U+1FB1x 	🬐 	🬑 	🬒 	🬓 	🬔 	🬕 	🬖 	🬗 	🬘 	🬙 	🬚 	🬛 	🬜 	🬝 	🬞 	🬟
-    U+1FB2x 	🬠 	🬡 	🬢 	🬣 	🬤 	🬥 	🬦 	🬧 	🬨 	🬩 	🬪 	🬫 	🬬 	🬭 	🬮 	🬯
-    U+1FB3x 	🬰 	🬱 	🬲 	🬳 	🬴 	🬵 	🬶 	🬷 	🬸 	🬹 	🬺 	🬻 	🬼 	🬽 	🬾 	🬿
-    U+1FB4x 	🭀 	🭁 	🭂 	🭃 	🭄 	🭅 	🭆 	🭇 	🭈 	🭉 	🭊 	🭋 	🭌 	🭍 	🭎 	🭏
-    U+1FB5x 	🭐 	🭑 	🭒 	🭓 	🭔 	🭕 	🭖 	🭗 	🭘 	🭙 	🭚 	🭛 	🭜 	🭝 	🭞 	🭟
-    U+1FB6x 	🭠 	🭡 	🭢 	🭣 	🭤 	🭥 	🭦 	🭧 	🭨 	🭩 	🭪 	🭫 	🭬 	🭭 	🭮 	🭯
-    U+1FB7x 	🭰 	🭱 	🭲 	🭳 	🭴 	🭵 	🭶 	🭷 	🭸 	🭹 	🭺 	🭻 	🭼 	🭽 	🭾 	🭿
-    U+1FB8x 	🮀 	🮁 	🮂 	🮃 	🮄 	🮅 	🮆 	🮇 	🮈 	🮉 	🮊 	🮋 	🮌 	🮍 	🮎 	🮏
-    U+1FB9x 	🮐 	🮑 	🮒 		🮔 	🮕 	🮖 	🮗 	🮘 	🮙 	🮚 	🮛 	🮜 	🮝 	🮞 	🮟
-    U+1FBAx 	🮠 	🮡 	🮢 	🮣 	🮤 	🮥 	🮦 	🮧 	🮨 	🮩 	🮪 	🮫 	🮬 	🮭 	🮮 	🮯
-    U+1FBBx 	🮰 	🮱 	🮲 	🮳 	🮴 	🮵 	🮶 	🮷 	🮸 	🮹 	🮺 	🮻 	🮼 	🮽 	🮾 	🮿
-    U+1FBCx 	🯀 	🯁 	🯂 	🯃 	🯄 	🯅 	🯆 	🯇 	🯈 	🯉 	🯊 					
-    U+1FBDx 																
-    U+1FBEx 																
-    U+1FBFx 	🯰 	🯱 	🯲 	🯳 	🯴 	🯵 	🯶 	🯷 	🯸 	🯹 			"#);
+    println!("{}", MESSAGE);
+    println!("Initializing memory...");
+    arch::native::memory::initialize();
+    x86_64::instructions::interrupts::int3();
+    unsafe {
+        *(0x1deadbeef as *mut u8) = 42; 
+    }
     loop{}
 }

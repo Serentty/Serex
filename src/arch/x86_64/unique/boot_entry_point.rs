@@ -9,9 +9,6 @@ pub extern "C" fn rust_start(multiboot_ptr: u32) -> ! {
             vga_graphic_console::BUFFER_BASE = transmute(framebuffer.address);
         }
     }
-    unsafe { asm!(
-        "add rsp, 0x1000000"
-    )};
     crate::kmain(boot_information);
 }
 

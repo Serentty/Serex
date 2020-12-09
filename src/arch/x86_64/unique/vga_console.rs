@@ -111,6 +111,7 @@ impl VgaConsole {
     pub fn write_char(&mut self, character: char) {
         match character {
             '\n' => self.new_line(),
+            '\u{08}' => self.backspace(),
             ch => self.write_cp437_character(cp437::encode_char_lossy(ch))
         }
     }
@@ -119,6 +120,7 @@ impl VgaConsole {
         for ch in s.chars() {
             self.write_char(ch);
         }
+        Self::move_cursor(self.active_column, BUFFER_HEIGHT - 1);
     }
 
     fn new_line(&mut self) {
@@ -139,6 +141,28 @@ impl VgaConsole {
         };
         for column in 0..BUFFER_WIDTH {
             self.buffer.entries[row][column].write(blank);
+        }
+    }
+
+    fn backspace(&mut self) {
+        if self.active_column > 0 {
+            let new_column = self.active_column - 1;
+            self.active_column = new_column;
+            self.write_cp437_character(0x20); // Space
+            self.active_column = new_column;
+        } 
+    }
+
+    fn move_cursor(x: usize, y: usize) {
+        use x86_64::instructions::port::Port;
+        let position = (y * BUFFER_WIDTH + x) as u16;
+        let mut index_port = Port::new(0x3D4);
+        let mut data_port = Port::new(0x3D5);
+        unsafe {
+            index_port.write(0x0E_u8); // Cursor location high
+            data_port.write((position >> 8) as u8);
+            index_port.write(0x0F_u8); // Cursor location low
+            data_port.write(position as u8);
         }
     }
  }

@@ -1,8 +1,16 @@
+use core::time::Duration;
 use x86_64::instructions::port::Port;
 
 const PC_SPEAKER_ENABLE: u8 = 0b00000011;
 
-pub fn beep(frequency: u32) {    
+pub fn beep(frequency: u32, duration: Duration) {
+    use crate::timer::{Handler, register_handler};
+    start_beep(frequency);
+    let stopper = Handler::new(stop, duration, false);
+    register_handler(stopper);
+}
+
+pub fn start_beep(frequency: u32) {    
     use super::pit::{Command, set_command, send_data_16};
     let command = Command::MODE_3 | Command::ACCESS_16BIT | Command::CHANNEL_2;
     // Calculate the divisor using this formula:

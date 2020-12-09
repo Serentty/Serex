@@ -1,5 +1,7 @@
 pub fn halt() {
-    // TODO
+    unsafe { asm!(
+        "wfe"
+    )};
 }
 
 pub fn halt_loop() -> ! {

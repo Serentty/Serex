@@ -1,34 +1,45 @@
-const UART_DR: u32 = 0x3F201000;
-const UART_FR: u32 = 0x3F201018;
+use spin::Mutex;
 
-fn mmio_write(reg: u32, val: u32) {
-    unsafe { *(reg as *mut u32) = val; }
+use core::mem::transmute;
+use volatile::Volatile;
+
+type MmmioRegister = &'static mut Volatile<u32>;
+
+struct Uart;
+
+impl Uart {
+    const UART_DR: usize = 0x3F201000;
+    const UART_FR: usize = 0x3F201018;
+
+    fn transmit_fifo_full(&self) -> bool {
+        let fr: MmmioRegister = unsafe { transmute(Self::UART_FR) };
+        fr.read() & (1 << 5) > 0
+    }
+    
+    fn receive_fifo_empty(&self) -> bool {
+        let fr: MmmioRegister = unsafe { transmute(Self::UART_FR) };
+        fr.read() & (1 << 4) > 0
+    }
+    
+    fn write_byte(&self, byte: u8) {
+        while self.transmit_fifo_full() {}
+        let dr: MmmioRegister = unsafe { transmute(Self::UART_DR) };
+        dr.write(byte as u32);
+    }
+    
+    fn read_byte(&self) -> u8 {
+        while self.receive_fifo_empty() {}
+        let dr: MmmioRegister = unsafe { transmute(Self::UART_DR) };
+        dr.read() as u8
+    }
+    
 }
 
-fn mmio_read(reg: u32) -> u32 {
-    unsafe { *(reg as *const u32) }
-}
-
-fn transmit_fifo_full() -> bool {
-    mmio_read(UART_FR) & (1 << 5) > 0
-}
-
-fn receive_fifo_empty() -> bool {
-    mmio_read(UART_FR) & (1 << 4) > 0
-}
-
-fn write_byte(byte: u8) {
-    while transmit_fifo_full() {}
-    mmio_write(UART_DR, byte as u32);
-}
-
-fn read_byte() -> u8 {
-    while receive_fifo_empty() {}
-    mmio_read(UART_DR) as u8
-}
+static UART: Mutex<Uart> = Mutex::new(Uart);
 
 pub fn write_string(s: &str) {
+    let uart = UART.lock();
     for byte in s.bytes() {
-        write_byte(byte);
+        uart.write_byte(byte);
     }
 }

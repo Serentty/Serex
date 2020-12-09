@@ -1,4 +1,5 @@
 arch ?= x86_64
+linker ?= ld
 build_type ?= debug
 kernel := build/kernel-$(arch).bin
 iso := build/serex-$(arch).iso
@@ -14,7 +15,7 @@ serex: target/$(target)/$(build_type)/libserex.a
 .PHONY: all clean run iso kernel doc disk
 
 all: $(kernel)
-release: $(release_kernel)
+
 clean:
 	rm -r build
 	cargo clean
@@ -32,11 +33,15 @@ $(iso): $(kernel) $(grub_cfg)
 	@rm -r build/iso
 
 $(kernel): kernel $(serex) $(assembly_object_files) $(linker_script)
-	ld -n --gc-sections -T $(linker_script) -o $(kernel) $(assembly_object_files) target/$(target)/$(build_type)/libserex.a
+	$(linker) --gc-sections -T $(linker_script) -o $(kernel) $(assembly_object_files) target/$(target)/$(build_type)/libserex.a
 
 kernel:
 	@RUST_TARGET_PATH=$(32shell pwd) cargo build --target $(arch).json
 
-build/arch/$(arch)/unique/%.o: src/arch/$(arch)/unique/%.asm
+build/arch/x86_64/unique/%.o: src/arch/x86_64/unique/%.asm
 	@mkdir -p $(shell dirname $@)
 	nasm -felf64 $< -o $@
+
+build/arch/aarch64/unique/%.o: src/arch/aarch64/unique/%.asm
+	@mkdir -p $(shell dirname $@)
+	aarch64-linux-gnu-as -c $< -o $@

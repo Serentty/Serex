@@ -11,6 +11,5 @@ pub extern "C" fn rust_start(multiboot_ptr: u32) -> ! {
             }
         }
     }
-    crate::kmain(boot_information);
+    crate::kmain();
 }
-

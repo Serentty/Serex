@@ -23,7 +23,7 @@ r#"╔═══════════════════╗
 ║ Welcome to SEREX! ║
 ╚═══════════════════╝"#;
 
-fn kmain(_boot_information: multiboot2::BootInformation) -> ! {
+fn kmain() -> ! {
     println!("{}", MESSAGE);
     println!("Initializing memory...");
     native::memory::initialize();

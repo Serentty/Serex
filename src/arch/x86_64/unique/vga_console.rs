@@ -165,6 +165,21 @@ impl VgaConsole {
             data_port.write(position as u8);
         }
     }
+
+    fn enable_cursor(&self) {
+        use x86_64::instructions::port::Port;
+        let position = ((BUFFER_HEIGHT - 1) * BUFFER_WIDTH + 0) as u16;
+        let mut index_port = Port::new(0x3D4);  
+        let mut data_port = Port::new(0x3D5);
+        unsafe {
+            index_port.write(0x0A_u8);
+            let start: u8 = (data_port.read() & 0xC0) | 14; 
+            data_port.write(start);
+            index_port.write(0x0B_u8);
+            let end: u8 = (data_port.read() & 0xE0) | 15; 
+            data_port.write(end);
+        }
+    }
  }
 
 impl core::fmt::Write for VgaConsole {
@@ -177,9 +192,13 @@ impl core::fmt::Write for VgaConsole {
 impl crate::console::Console for VgaConsole {}
 
 lazy_static! {
-    pub static ref VGA_CONSOLE: Mutex<VgaConsole> = Mutex::new(VgaConsole {
-        active_column: 0,
-        active_colours: ColourCode::new(Colour::Yellow, Colour::Black),
-        buffer: unsafe { &mut *(0xB8000 as *mut Buffer ) }
-    });
+    pub static ref VGA_CONSOLE: Mutex<VgaConsole> = {
+        let console =VgaConsole {
+            active_column: 0,
+            active_colours: ColourCode::new(Colour::Yellow, Colour::Black),
+            buffer: unsafe { &mut *(0xB8000 as *mut Buffer ) }
+        };
+        console.enable_cursor();
+        Mutex::new(console)
+    };
 }

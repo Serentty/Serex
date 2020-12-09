@@ -22,14 +22,16 @@ type HandlerList = [Option<Handler>; 4]; // TODO: Switch this to a vector so tha
 
 struct Notifier {
     handlers: HandlerList,
-    handler_count: usize
+    handler_count: usize,
+    uptime: Duration
 }
 
 impl Notifier {
     fn new() -> Notifier {
         Notifier {
             handlers: HandlerList::default(),
-            handler_count: 0
+            handler_count: 0,
+            uptime: Duration::from_nanos(0)
         }
     }
 
@@ -58,6 +60,7 @@ impl Notifier {
     }
 
     fn advance(&mut self, delta: Duration) {
+        self.uptime += delta;
         for handler in self.handlers.iter_mut() {
             if let Some(handler) = handler {
                 if let Some(new_time) = handler.countdown.checked_sub(delta) {
@@ -85,4 +88,8 @@ pub fn advance(delta: Duration) {
     without_interrupts(|| {
         NOTIFIER.lock().advance(delta);
     });
+}
+
+pub fn uptime() -> Duration {
+    NOTIFIER.lock().uptime
 }

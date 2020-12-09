@@ -3,7 +3,7 @@ use core::mem::transmute;
 use core::time::Duration;
 use volatile::Volatile;
 use lazy_static::lazy_static;
-use spin::{Mutex, MutexGuard};
+use spin::Mutex;
 
 // This must be initialized with Multiboot data in boot_entry_point.rs before use.
 pub static mut BUFFER_BASE: *mut u8 = null_mut();
@@ -112,6 +112,7 @@ impl VgaGraphicConsole {
         for ch in s.chars() {
             self.write_char(ch);
         }
+        self.toggle_cursor_cell(true);
         self.sync();
     }
 

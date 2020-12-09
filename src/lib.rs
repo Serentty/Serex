@@ -1,11 +1,13 @@
 #![feature(asm)]
 #![feature(abi_x86_interrupt)]
+#![feature(const_fn_fn_ptr_basics)]
 #![allow(dead_code)]
 #![no_std]
 #![no_main]
 
 mod arch;
 mod console;
+mod timer;
 
 use core::panic::PanicInfo;
 use arch::native;

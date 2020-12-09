@@ -21,6 +21,7 @@ unsafe fn eoi(interrupt: PicInterrupt) {
 }
 
 pub extern "x86-interrupt" fn idt_timer(_frame: &mut InterruptStackFrame) {
+    crate::timer::advance(core::time::Duration::from_nanos(54925400));
     unsafe { eoi(Timer) };
 }
 

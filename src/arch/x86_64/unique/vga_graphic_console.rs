@@ -1,8 +1,9 @@
 use core::ptr::null_mut;
 use core::mem::transmute;
+use core::time::Duration;
 use volatile::Volatile;
 use lazy_static::lazy_static;
-use spin::Mutex;
+use spin::{Mutex, MutexGuard};
 
 // This must be initialized with Multiboot data in boot_entry_point.rs before use.
 pub static mut BUFFER_BASE: *mut u8 = null_mut();
@@ -10,6 +11,7 @@ pub static mut BUFFER_BASE: *mut u8 = null_mut();
 pub const BUFFER_WIDTH: usize = 1024;
 pub const BUFFER_HEIGHT: usize = 768;
 pub const BUFFER_BPP: u8 = 32;
+pub const CURSOR_BLINK_TIME_MILLISECONDS: u32 = 500;
 const UNIFONT_WIDTH: usize = 4096;
 const UNIFONT_HEIGHT: usize = 8192;
 const UNIFONT_GLYPH_WIDTH: usize = 16;
@@ -50,7 +52,15 @@ struct Buffer {
     entries: [[Volatile<Colour>; BUFFER_WIDTH]; BUFFER_HEIGHT]
 }
 
-impl Buffer {
+pub struct VgaGraphicConsole {
+    active_column: usize,
+    foreground_colour: Colour,
+    background_colour: Colour,
+    back_buffer: &'static mut Buffer,
+    front_buffer: &'static mut Buffer
+}
+
+impl VgaGraphicConsole {
     fn write_glyph_at(&mut self, mut index: usize, foreground_colour: Colour, background_colour: Colour, x: usize, y: usize) {
         if index > 0x1FFFF {
             index = 0xFFFD; // Characters above the SMP are not covered
@@ -66,7 +76,7 @@ impl Buffer {
             let buffer_glyph_column_start = x * UNIFONT_GLYPH_WIDTH;
             for column in 0..UNIFONT_GLYPH_WIDTH {
                 let position = (glyph_start_y + row) * UNIFONT_WIDTH + (glyph_start_x + (column / if is_halfwidth(index) { 2 } else { 1 }));
-                self.entries[buffer_glyph_line][buffer_glyph_column_start + column].write(                    
+                self.back_buffer.entries[buffer_glyph_line][buffer_glyph_column_start + column].write(                    
                     if test_bit(UNIFONT[position / 8], position as u8 % 8) {
                         foreground_colour
                     } else {
@@ -76,30 +86,23 @@ impl Buffer {
             }
         }
     }
-}
 
-pub struct VgaGraphicConsole {
-    active_column: usize,
-    foreground_colour: Colour,
-    background_colour: Colour,
-    back_buffer: &'static mut Buffer,
-    front_buffer: &'static mut Buffer
-}
-
-impl VgaGraphicConsole {
     fn write_glyph(&mut self, ch: char) {
         if self.active_column >= BUFFER_COLUMNS {
-            self.new_line();
+            self.new_line();            
         }
         let row = BUFFER_ROWS - 1;
         let column = self.active_column;
-        self.back_buffer.write_glyph_at(ch as usize, self.foreground_colour, self.background_colour, column, row);
+        self.write_glyph_at(ch as usize, self.foreground_colour, self.background_colour, column, row);
         self.active_column += 1;
     }
 
     fn write_char(&mut self, character: char) {
         match character {
-            '\n' => self.new_line(),
+            '\n' => {
+                self.toggle_cursor_cell(false); // Don't allow the cursor to show up in the backlog.
+                self.new_line();
+            },
             '\u{08}' => self.backspace(),
             ch => self.write_glyph(ch)
         }
@@ -124,9 +127,10 @@ impl VgaGraphicConsole {
     }
 
     fn backspace(&mut self) {
+        self.toggle_cursor_cell(false); // Erase the cursor if it is visible.
         if self.active_column > 0 {
             let new_column = self.active_column - 1;
-            self.back_buffer.write_glyph_at('\u{20}' as usize, self.foreground_colour, self.background_colour, new_column, BUFFER_ROWS - 1);
+            self.write_glyph_at('\u{20}' as usize, self.foreground_colour, self.background_colour, new_column, BUFFER_ROWS - 1);
             self.active_column = new_column;
         }
     }
@@ -141,6 +145,25 @@ impl VgaGraphicConsole {
         }           
     }
 
+    fn toggle_cursor_cell(&mut self, status: bool) {
+        let ch = if status {
+            '\u{2581}' // Lower one-eighth block
+        } else {
+            '\u{20}' // Space
+        } as usize;
+        if self.active_column >= BUFFER_COLUMNS {
+            self.new_line();
+        }   
+        let (foreground, background, column) =
+            (self.foreground_colour, self.background_colour, self.active_column);
+        self.write_glyph_at(
+            ch,
+            foreground,
+            background,
+            column,
+            BUFFER_ROWS - 1);
+    }
+
     fn sync(&mut self) {        
         unsafe {
             asm!("rep movsb",
@@ -150,6 +173,21 @@ impl VgaGraphicConsole {
         }
     }
  }
+
+const BLINK_HANDLER: crate::timer::Handler = crate::timer::Handler::new(
+    blink_cursor,
+    Duration::from_millis(250),
+    true
+);
+
+fn blink_cursor() {
+    let mut status = CURSOR_STATUS.lock();
+    *status = !*status;
+    if let Some(mut console) = VGA_GRAPHIC_CONSOLE.try_lock() {
+        console.toggle_cursor_cell(*status);
+        console.sync();
+    }
+}
 
 impl core::fmt::Write for VgaGraphicConsole {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
@@ -163,11 +201,18 @@ impl crate::console::Console for VgaGraphicConsole {}
 static mut BACK_BUFFER: Buffer = unsafe { transmute([[0 as Colour; BUFFER_WIDTH]; BUFFER_HEIGHT]) };
 
 lazy_static! {
-    pub static ref VGA_GRAPHIC_CONSOLE: Mutex<VgaGraphicConsole> = Mutex::new(VgaGraphicConsole {
-        active_column: 0,
-        foreground_colour: 0x00FF9900,
-        background_colour: 0x00000000,
-        back_buffer: unsafe { &mut BACK_BUFFER },
-        front_buffer: unsafe { &mut *(BUFFER_BASE as *mut Buffer ) }
-    });
+    static ref CURSOR_STATUS: Mutex<bool> = Mutex::new(false);
+}
+
+lazy_static! {
+    pub static ref VGA_GRAPHIC_CONSOLE: Mutex<VgaGraphicConsole> = {
+        crate::timer::register_handler(BLINK_HANDLER).ok();
+        Mutex::new(VgaGraphicConsole {
+            active_column: 0,
+            foreground_colour: 0x00FF9900,
+            background_colour: 0x00000000,
+            back_buffer: unsafe { &mut BACK_BUFFER },
+            front_buffer: unsafe { &mut *(BUFFER_BASE as *mut Buffer ) }
+        })
+    };
 }

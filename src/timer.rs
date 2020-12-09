@@ -1,7 +1,7 @@
 use core::time::Duration;
 use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::instructions::interrupts::without_interrupts;
+use crate::arch::native::interrupts::without_interrupts;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Handler {
@@ -91,5 +91,7 @@ pub fn advance(delta: Duration) {
 }
 
 pub fn uptime() -> Duration {
-    NOTIFIER.lock().uptime
+    without_interrupts(|| {
+        NOTIFIER.lock().uptime
+    })
 }

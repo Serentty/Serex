@@ -8,3 +8,5 @@ pub fn halt_loop() -> ! {
         halt();
     }
 }
+
+pub use x86_64::instructions::interrupts::without_interrupts;

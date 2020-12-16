@@ -93,8 +93,8 @@ extern "x86-interrupt" fn idt_general_protection_fault(frame:  &mut InterruptSta
     println!("General protection fault {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_page_fault(frame: &mut InterruptStackFrame, _error: PageFaultErrorCode) {
-    println!("Page fault {:#?}", frame);
+extern "x86-interrupt" fn idt_page_fault(frame: &mut InterruptStackFrame, error: PageFaultErrorCode) {
+    println!("Page fault {:#?}\nAddress: {:?}\nError: {:?}", frame, x86_64::registers::control::Cr2::read(), error);
 }
 
 extern "x86-interrupt" fn idt_x87_floating_point(frame: &mut InterruptStackFrame) {

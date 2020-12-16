@@ -22,5 +22,5 @@ _start:
 .end:
     bl rust_start
 .hang:
-    wfe
+    wfi
     b .hang

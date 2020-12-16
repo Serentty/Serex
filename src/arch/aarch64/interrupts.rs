@@ -1,7 +1,5 @@
 pub fn halt() {
-    unsafe { asm!(
-        "wfe"
-    )};
+    cortex_a::asm::wfi();
 }
 
 pub fn halt_loop() -> ! {

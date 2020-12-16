@@ -21,6 +21,10 @@ uart_16550 = "0.2.0"
 pic8259_simple = "0.2.0"
 x86_64 = "0.12.3"
 
+[target.'cfg(target_arch = "aarch64")'.dependencies]
+cortex-a = { version = "5.x.x" }
+register = { version = "1.x.x" }
+
 [profile.dev]
 opt-level = "z"
 overflow-checks = true

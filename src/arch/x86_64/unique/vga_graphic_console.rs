@@ -117,12 +117,14 @@ impl VgaGraphicConsole {
     }
 
     fn new_line(&mut self) {
-        for row in (1 * UNIFONT_GLYPH_HEIGHT)..BUFFER_HEIGHT {
-            for column in 0..BUFFER_WIDTH {
-                let entry = self.back_buffer.entries[row][column].read();
-                self.back_buffer.entries[row - UNIFONT_GLYPH_HEIGHT][column].write(entry);
-            }
-        }
+        let line_size = BUFFER_WIDTH * UNIFONT_GLYPH_HEIGHT * (BUFFER_BPP as usize / 4) / 2;
+        unsafe {
+            let buffer_start = self.back_buffer as *mut Buffer as *mut u8;
+            asm!("rep movsb",
+            in("rsi") buffer_start.offset(line_size as isize),
+            in("rdi") buffer_start,
+            in("rcx") core::mem::size_of::<Buffer>() - line_size);
+        };
         self.clear_character_row(BUFFER_ROWS - 1);
         self.active_column = 0;
     }

@@ -29,6 +29,5 @@ fn kmain() -> ! {
     native::memory::initialize();
     println!("Initializing I/O...");
     native::io::initialize();
-    println!("Now chilling, waiting for interrupts.");  
     native::interrupts::halt_loop();
 }

@@ -54,6 +54,7 @@ struct Buffer {
 
 pub struct VgaGraphicConsole {
     active_column: usize,
+    active_row: usize,
     foreground_colour: Colour,
     background_colour: Colour,
     back_buffer: &'static mut Buffer,
@@ -89,10 +90,10 @@ impl VgaGraphicConsole {
 
     fn write_glyph(&mut self, ch: char) {
         if self.active_column >= BUFFER_COLUMNS {
-            self.new_line();            
+            self.new_line();
         }
-        let row = BUFFER_ROWS - 1;
         let column = self.active_column;
+        let row = self.active_row;
         self.write_glyph_at(ch as usize, self.foreground_colour, self.background_colour, column, row);
         self.active_column += 1;
     }
@@ -117,6 +118,15 @@ impl VgaGraphicConsole {
     }
 
     fn new_line(&mut self) {
+        if self.active_row < BUFFER_ROWS - 1 {
+            self.active_column = 0;
+            self.active_row += 1;
+        } else {
+            self.scroll_line();
+        }
+    }
+
+    fn scroll_line(&mut self) {
         let line_size = BUFFER_WIDTH * UNIFONT_GLYPH_HEIGHT * (BUFFER_BPP as usize / 4) / 2;
         unsafe {
             let buffer_start = self.back_buffer as *mut Buffer as *mut u8;
@@ -157,14 +167,14 @@ impl VgaGraphicConsole {
         if self.active_column >= BUFFER_COLUMNS {
             self.new_line();
         }   
-        let (foreground, background, column) =
-            (self.foreground_colour, self.background_colour, self.active_column);
+        let (foreground, background, column, row) =
+            (self.foreground_colour, self.background_colour, self.active_column, self.active_row);
         self.write_glyph_at(
             ch,
             foreground,
             background,
             column,
-            BUFFER_ROWS - 1);
+            row);
     }
 
     fn sync(&mut self) {        
@@ -212,6 +222,7 @@ lazy_static! {
         crate::timer::register_handler(BLINK_HANDLER).ok();
         Mutex::new(VgaGraphicConsole {
             active_column: 0,
+            active_row: 0,
             foreground_colour: 0x00FF9900,
             background_colour: 0x00000000,
             back_buffer: unsafe { &mut BACK_BUFFER },

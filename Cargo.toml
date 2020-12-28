@@ -16,7 +16,6 @@ multiboot2 = "0.10.1"
 pc-keyboard = "0.5.1"
 bitflags = "1.2.1"
 linked_list_allocator = "0.8.0"
-wasmi = { version = "0.7.0", default-features = false, features = ["core"] }
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 uart_16550 = "0.2.0"
@@ -32,5 +31,5 @@ opt-level = "z"
 overflow-checks = true
 lto = true
 incremental = true
-debug = true
+debug = false
 

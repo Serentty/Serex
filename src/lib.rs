@@ -35,6 +35,5 @@ fn kmain() -> ! {
     allocation::initialize();
     println!("Initializing I/O...");
     native::io::initialize();
-    println!("{:?}", v);
     native::interrupts::halt_loop();
 }

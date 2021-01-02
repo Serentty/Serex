@@ -6,11 +6,14 @@
 #![no_std]
 
 extern crate alloc;
+#[macro_use]
+extern crate mopa;
 
 mod arch;
 mod console;
 mod timer;
 mod allocation;
+mod filesystem;
 
 use core::panic::PanicInfo;
 use arch::native;
@@ -35,5 +38,9 @@ fn kmain() -> ! {
     allocation::initialize();
     println!("Initializing I/O...");
     native::io::initialize();
+    println!("Making file...");
+    let file = filesystem::Node::new_regular_file();
+    let read = file.lock().query::<filesystem::read_write::Readable>(*filesystem::read_write::IID_READABLE).unwrap();
+    println!("{:?}", (read.read)(&file.lock()));
     native::interrupts::halt_loop();
 }

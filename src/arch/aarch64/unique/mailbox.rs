@@ -287,9 +287,11 @@ pub fn initialize_framebuffer() -> FramebufferInformation {
 	let fb = FramebufferInformation {
 	    height,
 	    width,
-	    base: framebuffer_request[0].value_buffer.framebuffer_allocation_result.base.offset(0x40000000),
+	    base: framebuffer_request[0].value_buffer.framebuffer_allocation_result.base,
             len: framebuffer_request[0].value_buffer.framebuffer_allocation_result.len as usize
 	};
+
+	// Try to show something on the screen as a test.
 
 	for i in 0..1024 {
 	    fb.base.offset(i).write(volatile::Volatile::new(0xFF));

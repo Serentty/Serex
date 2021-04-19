@@ -40,7 +40,7 @@ fn kmain() -> ! {
     native::io::initialize();
     println!("Making file...");
     let file = filesystem::Node::new_regular_file();
-    let read = file.lock().query::<filesystem::read_write::Readable>(*filesystem::read_write::IID_READABLE).unwrap();
+    let read = file.lock().query::<filesystem::read_write::IReadable>().unwrap();
     println!("{:?}", (read.read)(&file.lock()));
     native::interrupts::halt_loop();
 }

@@ -54,7 +54,10 @@ pub enum Error {
     NotImplemented
 }
 
-pub trait InterfaceTable : Sync + mopa::Any {}
+pub trait InterfaceTable : Sync + mopa::Any {
+    fn id() -> InterfaceId where Self: Sized;
+}
+
 mopafy!(InterfaceTable, core = core, alloc = alloc);
 
 pub struct NodeKind {
@@ -85,8 +88,8 @@ impl Node<'_> {
         }
     }
 
-    pub fn query<T: InterfaceTable>(&self, interface: InterfaceId) -> Option<&'static T> {
-        self.query_dynamic(interface).and_then(|table| table.downcast_ref::<T>())
+    pub fn query<T: InterfaceTable>(&self) -> Option<&'static T> {
+        self.query_dynamic(T::id()).and_then(|table| table.downcast_ref::<T>())
     }
 }
 

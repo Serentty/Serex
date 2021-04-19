@@ -7,14 +7,22 @@ lazy_static! {
     pub static ref IID_WRITABLE: InterfaceId = InterfaceId::allocate();
 }
 
-pub struct Readable {
+pub struct IReadable {
     pub read: fn(&Node) -> Error
 }
 
-impl InterfaceTable for Readable {}
+impl InterfaceTable for IReadable {
+    fn id() -> InterfaceId {
+	*IID_READABLE
+    }
+}
 
-pub struct Writable {
+pub struct IWritable {
     pub write: fn(&Node) -> Error
 }
 
-impl InterfaceTable for Writable {}
+impl InterfaceTable for IWritable {
+    fn id() -> InterfaceId {
+	*IID_WRITABLE
+    }
+}

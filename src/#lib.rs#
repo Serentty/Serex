@@ -39,7 +39,11 @@ fn kmain() -> ! {
     println!("Initializing I/O...");
     native::io::initialize();
     use arch::aarch64::unique::mailbox;
-    let fb = mailbox::initialize_framebuffer();
-    println!("{:?}", fb);
+    let req = [16, 0, 1, 0];
+    for &item in req.iter() {
+	mailbox::write(mailbox::Channel::PropertyTags1, item);
+    }
+    let response = mailbox::read(mailbox::Channel::PropertyTags1);
+    println!("{:?}", response);
     native::interrupts::halt_loop();
 }

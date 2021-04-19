@@ -1,0 +1,167 @@
+use core::ptr::{read_volatile, write_volatile};
+
+const MAILBOX_BASE: usize = 0x3f00b880 as _;
+const STATUS_OFFSET: usize = 0x18;
+const WRITE_OFFSET: usize = 0x20;
+
+#[derive(Eq, PartialEq, Copy, Clone)]
+pub enum Channel {
+    PowerManagement = 0,
+    Framebuffer = 1,
+    VirtualUart = 2,
+    Vchiq = 3,
+    Leds = 4,
+    Buttons = 5,
+    TouchScreen = 6,
+    PropertyTags1 = 8,
+    PropertyTags2 = 9
+}
+
+#[derive(Eq, PartialEq, Copy, Clone, Debug)]
+pub enum MailboxError {
+    InvalidArgument,
+    NotReady,
+    WrongChannel
+}
+
+pub fn read(ch: Channel) -> Result<u32, MailboxError> {
+    use core::mem::transmute;
+
+    unsafe {
+	let mailbox: *mut u32 = transmute(MAILBOX_BASE);
+	let status: *mut u32 = transmute(MAILBOX_BASE + STATUS_OFFSET);
+
+	if (read_volatile(status) & 0x40000000) != 0 {
+	    return Err(MailboxError::NotReady);
+	}
+	
+	let data = read_volatile(mailbox);
+	
+	if data & (ch as u32) == ch as u32 {
+	    Ok(data & 0xFFFFFFF0)
+	} else {
+	    Err(MailboxError::WrongChannel)
+	}
+	
+    }
+}
+
+pub fn write(ch: Channel, message: u32) -> Result<(), MailboxError> {
+    use core::mem::transmute;
+
+    crate::println!("WRITING {}", message);
+    
+    if message & 0xF != 0 { return Err(MailboxError::InvalidArgument); }
+
+    unsafe {
+	let mailbox: *mut u32 = transmute(MAILBOX_BASE);
+	let status: *mut u32 = transmute(MAILBOX_BASE + STATUS_OFFSET);
+	let write: *mut u32 = transmute(MAILBOX_BASE + WRITE_OFFSET);
+
+	if read_volatile(status) & 0x80000000 != 0 {
+	    return Err(MailboxError::NotReady);
+	}
+
+	write_volatile(write, message | (ch as u32));
+    }
+    
+    Ok(())
+}
+
+pub fn arm_to_vc(address: usize) -> usize {
+    address + 0x40000000
+}
+
+#[repr(u32)]
+enum PropertyTag {
+    Null = 0,
+    FbAllocateBuffer = 0x00040001,
+    FbReleaseBuffer = 0x00048001,
+    FbGetPhysicalDimensions = 0x00040003,
+    FbSetPhysicalDimensions = 0x00048003,
+    FbGetVirtualDimensions = 0x00040004,
+    FbSetVirtualDimensions = 0x00048004,
+    FbGetBitsPerPixel = 0x00040005,
+    FbSetBitsPerPixel = 0x00048005,
+    FbGetBytesPerRow = 0x00040008
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+struct FramebufferLocation {
+    address: usize,
+    size: u32
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+struct ScreenSize {
+    width: u32,
+    height: u32
+}
+
+#[repr(C)]
+union ValueBuffer {
+    uint32: u32,
+    framebuffer_location: FramebufferLocation,
+    screen_size: ScreenSize
+}
+
+#[repr(C)]
+struct PropertyMessageTag {
+    tag: PropertyTag,
+    value_buffer: ValueBuffer
+}
+
+#[repr(u32)]
+enum PropertyMessageRequestResponseCode {
+    Request = 0x00000000,
+    ResponseSuccess = 0x80000000,
+    ResponseError = 0x80000001
+}
+
+#[repr(C)]
+struct PropertyMessageBuffer {
+    size: u32,
+    request_response_code: PropertyMessageRequestResponseCode,
+    tags: [u32; 1] // Evil memory hacks make this bigger.
+}
+
+impl PropertyMessageTag {
+    const fn value_buffer_len(&self) -> u32 {
+	use PropertyTag::*;
+	match self.tag {
+	    FbAllocateBuffer
+		| FbGetPhysicalDimensions
+		| FbSetPhysicalDimensions
+		| FbGetVirtualDimensions
+		| FbSetVirtualDimensions
+		=> { 8 },
+	    FbGetBitsPerPixel
+		| FbSetBitsPerPixel
+		| FbGetBytesPerRow
+		=> { 4 },
+	    FbReleaseBuffer
+		=> { 0 },
+	    Null
+		=> { 0 }
+	}
+    }
+}
+
+pub fn send_messages(tags: &[PropertyMessageTag]) {
+    use super::mailbox::*;
+
+    let mut buffer_size = 0;
+
+    for &tag in tags.iter() {
+	buffer_size += tag.value_buffer_len() + 12; // 12 for tag header stuff.
+    }
+
+    // Align the buffer size to 16 bytes.
+    buffer_size += if (buffer_size % 16) != 0 { 16 - (buffer_size % 16) } else { 0 };
+
+    unsafe {
+	
+    }
+}

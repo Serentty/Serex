@@ -41,82 +41,82 @@ pub fn load() {
     INTERRUPT_DESCRIPTOR_TABLE.load();
 }
 
-extern "x86-interrupt" fn idt_divide_by_zero(frame: &mut InterruptStackFrame)  {
+extern "x86-interrupt" fn idt_divide_by_zero(frame: InterruptStackFrame)  {
     println!("Divide-by-zero error {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_debug(frame: &mut InterruptStackFrame)  {
+extern "x86-interrupt" fn idt_debug(frame: InterruptStackFrame)  {
     println!("Debug {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_non_maskable_interrupt(frame: &mut InterruptStackFrame)  {
+extern "x86-interrupt" fn idt_non_maskable_interrupt(frame: InterruptStackFrame)  {
     println!("Non-maskable interrupt {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_breakpoint(frame: &mut InterruptStackFrame) {
+extern "x86-interrupt" fn idt_breakpoint(frame: InterruptStackFrame) {
     println!("Breakpoint {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_overflow(frame: &mut InterruptStackFrame) {
+extern "x86-interrupt" fn idt_overflow(frame: InterruptStackFrame) {
     println!("Overflow {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_bound_range_exceeded(frame: &mut InterruptStackFrame) {
+extern "x86-interrupt" fn idt_bound_range_exceeded(frame: InterruptStackFrame) {
     println!("Bound range exceeded {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_invalid_opcode(frame: &mut InterruptStackFrame) {
+extern "x86-interrupt" fn idt_invalid_opcode(frame: InterruptStackFrame) {
     println!("Invalid opcode {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_device_not_available(frame: &mut InterruptStackFrame) {
+extern "x86-interrupt" fn idt_device_not_available(frame: InterruptStackFrame) {
     println!("Device not available {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_double_fault(frame: &mut InterruptStackFrame, _error: u64) -> ! {
+extern "x86-interrupt" fn idt_double_fault(frame: InterruptStackFrame, _error: u64) -> ! {
     panic!("Double fault {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_invalid_tss(frame: &mut InterruptStackFrame, _error: u64) {
+extern "x86-interrupt" fn idt_invalid_tss(frame: InterruptStackFrame, _error: u64) {
     println!("Invalid TSS {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_segment_not_present(frame: &mut InterruptStackFrame, _error: u64) {
+extern "x86-interrupt" fn idt_segment_not_present(frame: InterruptStackFrame, _error: u64) {
     println!("Segment not present {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_stack_segment_fault(frame: &mut InterruptStackFrame, _error: u64) {
+extern "x86-interrupt" fn idt_stack_segment_fault(frame: InterruptStackFrame, _error: u64) {
     println!("Stack segment fault {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_general_protection_fault(frame:  &mut InterruptStackFrame, _error: u64) {
+extern "x86-interrupt" fn idt_general_protection_fault(frame: InterruptStackFrame, _error: u64) {
     println!("General protection fault {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_page_fault(frame: &mut InterruptStackFrame, error: PageFaultErrorCode) {
+extern "x86-interrupt" fn idt_page_fault(frame: InterruptStackFrame, error: PageFaultErrorCode) {
     println!("Page fault {:#?}\nAddress: {:?}\nError: {:?}", frame, x86_64::registers::control::Cr2::read(), error);
 }
 
-extern "x86-interrupt" fn idt_x87_floating_point(frame: &mut InterruptStackFrame) {
+extern "x86-interrupt" fn idt_x87_floating_point(frame: InterruptStackFrame) {
     println!("x87 floating point {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_alignment_check(frame:  &mut InterruptStackFrame, _error: u64) {
+extern "x86-interrupt" fn idt_alignment_check(frame: InterruptStackFrame, _error: u64) {
     println!("Alighnment check {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_machine_check(frame: &mut InterruptStackFrame) -> ! {
+extern "x86-interrupt" fn idt_machine_check(frame: InterruptStackFrame) -> ! {
     panic!("Machine check {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_simd_floating_point(frame: &mut InterruptStackFrame) {
+extern "x86-interrupt" fn idt_simd_floating_point(frame: InterruptStackFrame) {
     println!("SIMD floating point {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_virtualization(frame: &mut InterruptStackFrame) {
+extern "x86-interrupt" fn idt_virtualization(frame: InterruptStackFrame) {
     println!("Virtualization {:#?}", frame);
 }
 
-extern "x86-interrupt" fn idt_security_exception(frame: &mut InterruptStackFrame, _error: u64) {
+extern "x86-interrupt" fn idt_security_exception(frame: InterruptStackFrame, _error: u64) {
     println!("Security exception {:#?}", frame);
 }

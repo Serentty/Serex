@@ -1,6 +1,6 @@
 use lazy_static::lazy_static;
 use x86_64::structures::idt::InterruptStackFrame;
-use pic8259_simple::ChainedPics;
+use pic8259::ChainedPics;
 use spin::Mutex;
 use PicInterrupt::*;
 
@@ -20,17 +20,17 @@ unsafe fn eoi(interrupt: PicInterrupt) {
     PICS.lock().notify_end_of_interrupt(interrupt as u8);
 }
 
-pub extern "x86-interrupt" fn idt_timer(_frame: &mut InterruptStackFrame) {
+pub extern "x86-interrupt" fn idt_timer(_frame: InterruptStackFrame) {
     crate::timer::advance(core::time::Duration::from_nanos(54925400));
     unsafe { eoi(Timer) };
 }
 
-pub extern "x86-interrupt" fn idt_keyboard(_frame: &mut InterruptStackFrame) {
+pub extern "x86-interrupt" fn idt_keyboard(_frame: InterruptStackFrame) {
     use x86_64::instructions::port::Port;
     use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
     lazy_static! {
         static ref KEYBOARD: Mutex<Keyboard<layouts::Us104Key, ScancodeSet1>> =
-            Mutex::new(Keyboard::new(layouts::Us104Key, ScancodeSet1, HandleControl::Ignore));
+            Mutex::new(Keyboard::new(HandleControl::Ignore));
     }
     let mut keyboard = KEYBOARD.lock();
     let mut ps2 = Port::new(0x60);

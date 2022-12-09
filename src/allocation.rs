@@ -15,6 +15,6 @@ fn alloc_error_handler(layout: Layout) -> ! {
 
 pub fn initialize() {
     unsafe {
-        ALLOCATOR.lock().init(HEAP_BASE, HEAP_SIZE);
+        ALLOCATOR.lock().init(HEAP_BASE as *mut u8, HEAP_SIZE);
     }
 }

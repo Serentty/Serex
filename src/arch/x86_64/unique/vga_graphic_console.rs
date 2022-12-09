@@ -1,6 +1,7 @@
 use core::ptr::null_mut;
 use core::mem::transmute;
 use core::time::Duration;
+use core::arch::asm;
 use volatile::Volatile;
 use lazy_static::lazy_static;
 use spin::Mutex;

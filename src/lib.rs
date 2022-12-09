@@ -38,8 +38,5 @@ fn kmain() -> ! {
     allocation::initialize();
     println!("Initializing I/O...");
     native::io::initialize();
-    use arch::aarch64::unique::mailbox;
-    let fb = mailbox::initialize_framebuffer();
-    println!("{:?}", fb);
     native::interrupts::halt_loop();
 }
